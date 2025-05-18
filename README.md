@@ -143,14 +143,16 @@ LLM Clipperは、クリップボードの内容をコンテキストとして、
 ## 6. 技術スタック (予定)
 
 *   **言語:** Python
-*   **GUIライブラリ (設定アプリ):** Tkinter (推奨), PyQt, CustomTkinter など検討
+*   **GUIライブラリ (設定アプリ):** Tkinter
 *   **LLM API:** Google Gemini API (SDK: `google-generativeai`)
+    *   reference
+        *   [gemini API(text生成)](https://ai.google.dev/gemini-api/docs/text-generation)
+        *   [gemini model一覧](https://ai.google.dev/gemini-api/docs/models?hl=ja)
 *   **デスクトップ通知:** `plyer` または `win10toast-click` など
 *   **パッケージング:** PyInstaller (予定)
+*   
 
 ## 7. 今後の展望 (オプション)
 
-*   多言語対応
-*   より高度なプロンプト管理機能（タグ付け、検索など）
-*   対応LLMの追加
+*   対応LLM(OpenAI/Claude)の追加
 *   アイコン作成
