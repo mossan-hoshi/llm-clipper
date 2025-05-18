@@ -11,6 +11,16 @@
             "program": "${workspaceFolder}/ClipperAgentConfig.py",
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "Python: ClipperAgent 翻訳",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/ClipperAgent.py",
+            "args": ["翻訳"],
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
     ]
 }
+

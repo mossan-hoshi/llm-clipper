@@ -17,20 +17,15 @@ from clipper_agent.notification import show_notification
 from clipper_agent.logging_utils import setup_logging
 
 def main():
-    """
-    メインエントリーポイント
-    """
-    # ロギングの設定
     logger = setup_logging()
-    logger.info("ClipperAgentを起動しました")
-    
-    # コマンドライン引数の解析
+    print("ClipperAgentを起動しました")
+
     parser = argparse.ArgumentParser(description='LLM Clipper: クリップボードの内容をLLMで処理するツール')
     parser.add_argument('prompt_name', nargs='?', help='使用するプロンプト名')
     args = parser.parse_args()
-    
+
     prompt_name = args.prompt_name
-    
+
     try:
         # プロンプト名が指定されていない場合はデフォルトプロンプトを使用
         if not prompt_name:
@@ -44,38 +39,38 @@ def main():
                 print("使用法: ClipperAgent.exe \"プロンプト名\"")
                 sys.exit(1)
             prompt_name = default_prompt_name
-            logger.info(f"デフォルトプロンプト '{prompt_name}' を使用します")
+            print(f"デフォルトプロンプト '{prompt_name}' を使用します")
             
         # クリップボードからテキストを取得
         clipboard_text = get_clipboard_text()
-        logger.info(f"クリップボードからテキストを取得しました ({len(clipboard_text)} 文字)")
-        
+        print(f"クリップボードからテキストを取得しました ({len(clipboard_text)} 文字)")
+
         # 指定されたプロンプト名のプロンプト情報を取得
         prompt_info = get_prompt(prompt_name)
         prompt_template = prompt_info.get('content', '')
         model_id = prompt_info.get('model', 'gemini-pro')
-        logger.info(f"プロンプト '{prompt_name}' を読み込みました（モデル: {model_id}）")
-        
+        print(f"プロンプト '{prompt_name}' を読み込みました（モデル: {model_id}）")
+
         # プロンプトを組み立て
         final_prompt = build_prompt(prompt_template, clipboard_text)
-        logger.info("プロンプトを組み立てました")
-        
+        print("プロンプトを組み立てました")
+
         # LLM APIでテキスト生成
-        logger.info(f"Gemini API ({model_id}) にリクエストを送信します")
+        print(f"Gemini API ({model_id}) にリクエストを送信します")
         start_time = time.time()
         generated_text = generate_text(final_prompt, model_id)
         elapsed_time = time.time() - start_time
-        logger.info(f"APIからの応答を受信しました（処理時間: {elapsed_time:.2f}秒）")
-        
+        print(f"APIからの応答を受信しました（処理時間: {elapsed_time:.2f}秒）")
+
         # 生成されたテキストをクリップボードに設定
         set_clipboard_text(generated_text)
-        logger.info("生成されたテキストをクリップボードに設定しました")
-        
+        print("生成されたテキストをクリップボードに設定しました")
+
         # 通知
         success_msg = f"'{prompt_name}'の結果をクリップボードにコピーしました"
         show_notification("処理完了", success_msg)
-        logger.info(success_msg)
-        
+        print(success_msg)
+
     except ValueError as e:
         error_msg = str(e)
         logger.error(f"値エラー: {error_msg}")
