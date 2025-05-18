@@ -1,4 +1,3 @@
-\
 import json
 import os
 from pathlib import Path
@@ -51,6 +50,43 @@ def add_prompt(prompt_name: str, prompt_text: str, model_id: str) -> bool:
     settings["prompts"].append(new_prompt)
     save_settings(settings)
     return True
+
+def update_prompt(prompt_name: str, prompt_text: str, model_id: str) -> bool:
+    """既存のプロンプトを更新します。"""
+    settings = load_settings()
+    for i, prompt in enumerate(settings.get("prompts", [])):
+        if prompt.get("name") == prompt_name:
+            settings["prompts"][i] = {
+                "name": prompt_name,
+                "text": prompt_text,
+                "model": model_id,
+            }
+            save_settings(settings)
+            return True
+    return False  # 更新対象のプロンプトが見つからない
+
+def delete_prompt(prompt_name: str) -> bool:
+    """プロンプトを削除します。"""
+    settings = load_settings()
+    initial_count = len(settings.get("prompts", []))
+    
+    # 名前が一致するプロンプトを除外
+    settings["prompts"] = [p for p in settings.get("prompts", []) if p.get("name") != prompt_name]
+    
+    # デフォルトプロンプトの確認と削除
+    if settings.get("default_prompt_name") == prompt_name:
+        settings["default_prompt_name"] = None
+    
+    save_settings(settings)
+    return len(settings.get("prompts", [])) < initial_count  # 削除されたかどうかを返す
+
+def get_prompt_by_name(prompt_name: str) -> dict:
+    """名前を指定してプロンプト情報を取得します。"""
+    settings = load_settings()
+    for prompt in settings.get("prompts", []):
+        if prompt.get("name") == prompt_name:
+            return prompt
+    return None  # 見つからない場合はNoneを返す
 
 if __name__ == '__main__':
     # テスト用
