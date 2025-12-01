@@ -1,6 +1,15 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog
-from .settings_manager import load_settings, save_settings, add_prompt, update_prompt, delete_prompt, get_prompt_by_name
+from tkinter import ttk, messagebox
+from .settings_manager import (
+    load_available_models,
+    load_settings,
+    save_settings,
+    add_prompt,
+    update_prompt,
+    delete_prompt,
+    get_prompt_by_name,
+    set_default_prompt,
+)
 
 class ToolTip:
     """シンプルなツールチップ実装"""
@@ -74,18 +83,32 @@ class ClipperAgentConfigApp:
 
         ttk.Label(form_frame, text="利用モデル:").grid(row=2, column=0, padx=5, pady=5, sticky=tk.W)
         self.model_id_var = tk.StringVar()
-        # ステップ1では固定値
-        self.model_id_combo = ttk.Combobox(form_frame, textvariable=self.model_id_var, 
-                                           values=["gemini-pro", "gemini-flash"], state="readonly")
+        available_models = load_available_models()
+        if available_models:
+            combo_values = available_models
+            self.model_status_var = tk.StringVar(value=".envからモデルリストを読み込みました")
+        else:
+            combo_values = ["gemini-pro", "gemini-flash"]
+            self.model_status_var = tk.StringVar(value=".envが見つからないかAVAILABLE_MODELSが未設定です。デフォルト値を使用します。")
+
+        self.model_id_combo = ttk.Combobox(
+            form_frame,
+            textvariable=self.model_id_var,
+            values=combo_values,
+            state="readonly",
+        )
         self.model_id_combo.grid(row=2, column=1, padx=5, pady=5, sticky=tk.EW)
-        if self.model_id_combo['values']:
-             self.model_id_combo.current(0) # デフォルト選択
+        if self.model_id_combo["values"]:
+            self.model_id_combo.current(0)
+
+        self.model_status_label = ttk.Label(form_frame, textvariable=self.model_status_var, foreground="#666666")
+        self.model_status_label.grid(row=3, column=1, padx=5, pady=(0, 5), sticky=tk.W)
 
         form_frame.columnconfigure(1, weight=1) # EntryとComboboxがウィンドウ幅に追従するように
 
         # --- ボタン --- 
         button_frame = ttk.Frame(form_frame)
-        button_frame.grid(row=3, column=1, padx=5, pady=10, sticky=tk.E)
+        button_frame.grid(row=4, column=1, padx=5, pady=10, sticky=tk.E)
 
         self.new_button = ttk.Button(button_frame, text="フォームクリア", command=self.clear_form)
         self.new_button.pack(side=tk.LEFT, padx=5)
@@ -108,6 +131,10 @@ class ClipperAgentConfigApp:
         list_button_frame = ttk.Frame(list_frame)
         list_button_frame.pack(fill=tk.X, padx=5, pady=(0, 5))
         
+        self.default_button = ttk.Button(list_button_frame, text="デフォルトに設定", command=self.set_default_prompt)
+        self.default_button.pack(side=tk.LEFT)
+        create_tooltip(self.default_button, "選択したプロンプトをデフォルトとして設定します。")
+
         self.delete_button = ttk.Button(list_button_frame, text="削除", command=self.delete_selected_prompt)
         self.delete_button.pack(side=tk.RIGHT)
         create_tooltip(self.delete_button, "選択したプロンプトを削除します。")
@@ -156,13 +183,13 @@ class ClipperAgentConfigApp:
 
         if self.edit_mode and self.current_prompt_name:
             # 編集モードの場合は更新
-            if update_prompt(name, text, model):
+            if update_prompt(self.current_prompt_name, name, text, model):
                 messagebox.showinfo("成功", f"プロンプト '{name}' を更新しました。")
                 self.settings_data = load_settings()  # 保存後に再読み込み
                 self.refresh_prompt_list()
                 self.clear_form()
             else:
-                messagebox.showerror("エラー", f"プロンプト '{name}' の更新に失敗しました。")
+                messagebox.showerror("エラー", "同名のプロンプトが既に存在するか、更新に失敗しました。")
         else:
             # 新規作成モードの場合は追加
             if add_prompt(name, text, model):
@@ -171,8 +198,7 @@ class ClipperAgentConfigApp:
                 self.refresh_prompt_list()
                 self.clear_form()
             else:
-                # add_promptがFalseを返すのは現状では想定していないが、将来の重複チェック用
-                messagebox.showerror("エラー", f"プロンプト '{name}' の保存に失敗しました。") 
+                messagebox.showerror("エラー", f"プロンプト名 '{name}' は既に存在します。別の名前を指定してください。")
 
     def refresh_prompt_list(self):
         """プロンプト一覧を更新"""
@@ -181,7 +207,10 @@ class ClipperAgentConfigApp:
         if isinstance(prompts, list):
             for i, prompt in enumerate(prompts):
                 if isinstance(prompt, dict) and "name" in prompt:
-                    self.prompt_listbox.insert(tk.END, f"{i+1}. {prompt['name']} ({prompt.get('model', 'N/A')})")
+                    display_name = prompt['name']
+                    if self.settings_data.get("default_prompt_name") == prompt["name"]:
+                        display_name = f"* {display_name}"  # デフォルトを示す
+                    self.prompt_listbox.insert(tk.END, f"{i+1}. {display_name} ({prompt.get('model', 'N/A')})")
                 else:
                     # 不正な形式のプロンプトデータはスキップまたはエラー表示
                     self.prompt_listbox.insert(tk.END, f"{i+1}. [不正なプロンプトデータ]")
@@ -256,6 +285,25 @@ class ClipperAgentConfigApp:
                     self.clear_form()
             else:
                 messagebox.showerror("エラー", f"プロンプト '{prompt_name}' の削除に失敗しました。")
+
+    def set_default_prompt(self):
+        """選択されたプロンプトをデフォルトとして設定"""
+        selected_index = self.prompt_listbox.curselection()
+        if not selected_index:
+            messagebox.showinfo("情報", "デフォルトに設定するプロンプトを選択してください。")
+            return
+
+        prompts = self.settings_data.get("prompts", [])
+        if 0 <= selected_index[0] < len(prompts):
+            prompt = prompts[selected_index[0]]
+            prompt_name = prompt.get("name", "")
+            try:
+                set_default_prompt(prompt_name)
+                messagebox.showinfo("成功", f"'{prompt_name}' をデフォルトプロンプトに設定しました。")
+                self.settings_data = load_settings()
+                self.refresh_prompt_list()
+            except ValueError as e:
+                messagebox.showerror("エラー", str(e))
 
 
 if __name__ == '__main__':

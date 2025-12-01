@@ -47,7 +47,7 @@ def main():
 
         # 指定されたプロンプト名のプロンプト情報を取得
         prompt_info = get_prompt(prompt_name)
-        prompt_template = prompt_info.get('content', '')
+        prompt_template = prompt_info.get('content') or prompt_info.get('text', '')
         model_id = prompt_info.get('model', 'gemini-pro')
         print(f"プロンプト '{prompt_name}' を読み込みました（モデル: {model_id}）")
 
