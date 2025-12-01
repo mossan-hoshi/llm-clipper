@@ -1,6 +1,9 @@
 import json
 import os
 from pathlib import Path
+from typing import List, Optional
+
+from dotenv import load_dotenv
 
 APP_NAME = "ClipperAgent"
 SETTINGS_FILE_NAME = "settings.json"
@@ -13,17 +16,36 @@ def get_app_data_dir() -> Path:
 def get_settings_file_path() -> Path:
     return get_app_data_dir() / SETTINGS_FILE_NAME
 
+def _normalize_prompt(prompt: dict) -> dict:
+    """プロンプト辞書のキーを現在の仕様に揃える"""
+
+    if "content" not in prompt and "text" in prompt:
+        prompt["content"] = prompt.get("text", "")
+    return {
+        "name": prompt.get("name", ""),
+        "content": prompt.get("content", ""),
+        "model": prompt.get("model", ""),
+    }
+
+
 def load_settings() -> dict:
     """設定ファイルを読み込みます。ファイルが存在しない場合は空の辞書を返します。"""
     settings_file = get_settings_file_path()
+    default = {"prompts": [], "default_prompt_name": None}
     if settings_file.exists():
         try:
             with open(settings_file, "r", encoding="utf-8") as f:
-                return json.load(f)
+                loaded = json.load(f)
+                prompts = loaded.get("prompts", []) if isinstance(loaded, dict) else []
+                normalized_prompts = [_normalize_prompt(p) for p in prompts if isinstance(p, dict)]
+                return {
+                    "prompts": normalized_prompts,
+                    "default_prompt_name": loaded.get("default_prompt_name"),
+                }
         except json.JSONDecodeError:
-            # ファイルが不正な場合は空のデータを返すか、エラーを通知する
-            return {"prompts": [], "default_prompt_name": None}
-    return {"prompts": [], "default_prompt_name": None}
+            # ファイルが不正な場合は空のデータを返す
+            return default
+    return default
 
 def save_settings(settings_data: dict):
     """設定データをファイルに保存します。"""
@@ -34,33 +56,44 @@ def save_settings(settings_data: dict):
 def add_prompt(prompt_name: str, prompt_text: str, model_id: str) -> bool:
     """新しいプロンプトを追加します。"""
     settings = load_settings()
-    # 簡単な重複チェック（ステップ5で詳細化）
-    # for p in settings.get("prompts", []):
-    #     if p["name"] == prompt_name:
-    #         return False # 重複あり
+
+    for prompt in settings.get("prompts", []):
+        if prompt.get("name") == prompt_name:
+            return False  # 重複あり
 
     new_prompt = {
         "name": prompt_name,
-        "text": prompt_text,
+        "content": prompt_text,
         "model": model_id,
     }
     if "prompts" not in settings or not isinstance(settings["prompts"], list):
         settings["prompts"] = []
-    
+
     settings["prompts"].append(new_prompt)
     save_settings(settings)
     return True
 
-def update_prompt(prompt_name: str, prompt_text: str, model_id: str) -> bool:
+
+def update_prompt(original_name: str, prompt_name: str, prompt_text: str, model_id: str) -> bool:
     """既存のプロンプトを更新します。"""
     settings = load_settings()
+
+    # 名前変更時の重複チェック
+    for prompt in settings.get("prompts", []):
+        if prompt.get("name") == prompt_name and prompt_name != original_name:
+            return False
+
     for i, prompt in enumerate(settings.get("prompts", [])):
-        if prompt.get("name") == prompt_name:
+        if prompt.get("name") == original_name:
             settings["prompts"][i] = {
                 "name": prompt_name,
-                "text": prompt_text,
+                "content": prompt_text,
                 "model": model_id,
             }
+
+            if settings.get("default_prompt_name") == original_name:
+                settings["default_prompt_name"] = prompt_name
+
             save_settings(settings)
             return True
     return False  # 更新対象のプロンプトが見つからない
@@ -87,6 +120,41 @@ def get_prompt_by_name(prompt_name: str) -> dict:
         if prompt.get("name") == prompt_name:
             return prompt
     return None  # 見つからない場合はNoneを返す
+
+
+def set_default_prompt(prompt_name: Optional[str]) -> None:
+    """デフォルトプロンプト名を設定または解除する"""
+    settings = load_settings()
+
+    if prompt_name:
+        # 存在確認
+        if not any(p.get("name") == prompt_name for p in settings.get("prompts", [])):
+            raise ValueError("指定されたプロンプトが存在しません。")
+        settings["default_prompt_name"] = prompt_name
+    else:
+        settings["default_prompt_name"] = None
+
+    save_settings(settings)
+
+
+def load_available_models() -> List[str]:
+    """.envからAVAILABLE_MODELSを読み込み、リストで返す"""
+    # プロジェクトルート/.env -> APPDATA/.env の順で検索
+    env_paths = [
+        Path(__file__).resolve().parent.parent / ".env",
+        get_app_data_dir() / ".env",
+    ]
+
+    for env_path in env_paths:
+        if env_path.exists():
+            load_dotenv(env_path)
+            models = os.getenv("AVAILABLE_MODELS", "")
+            if models:
+                return [m.strip() for m in models.split(",") if m.strip()]
+            return []
+
+    # .envが見つからない場合
+    return []
 
 if __name__ == '__main__':
     # テスト用

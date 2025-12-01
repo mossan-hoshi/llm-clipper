@@ -49,10 +49,13 @@ def get_prompt(prompt_name):
         ValueError: 指定されたプロンプト名が存在しない場合
     """
     settings = get_settings()
-    
+
     prompts = settings.get('prompts', [])
     for prompt in prompts:
         if prompt.get('name') == prompt_name:
+            # 後方互換性: textキーが存在する場合はcontentとして扱う
+            if 'content' not in prompt and 'text' in prompt:
+                prompt['content'] = prompt.get('text')
             return prompt
-    
+
     raise ValueError(f"指定されたプロンプト '{prompt_name}' が見つかりません。")
