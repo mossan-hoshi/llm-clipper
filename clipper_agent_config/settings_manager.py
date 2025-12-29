@@ -31,7 +31,7 @@ def _normalize_prompt(prompt: dict) -> dict:
 def load_settings() -> dict:
     """設定ファイルを読み込みます。ファイルが存在しない場合は空の辞書を返します。"""
     settings_file = get_settings_file_path()
-    default = {"prompts": [], "default_prompt_name": None}
+    default = {"prompts": [], "default_prompt_name": None, "log_level": "INFO"}
     if settings_file.exists():
         try:
             with open(settings_file, "r", encoding="utf-8") as f:
@@ -41,6 +41,7 @@ def load_settings() -> dict:
                 return {
                     "prompts": normalized_prompts,
                     "default_prompt_name": loaded.get("default_prompt_name"),
+                    "log_level": loaded.get("log_level", "INFO"),
                 }
         except json.JSONDecodeError:
             # ファイルが不正な場合は空のデータを返す
@@ -134,6 +135,17 @@ def set_default_prompt(prompt_name: Optional[str]) -> None:
     else:
         settings["default_prompt_name"] = None
 
+    save_settings(settings)
+
+
+def set_log_level(level: str) -> None:
+    """ログレベルを設定する"""
+    valid_levels = ["DEBUG", "INFO", "ERROR"]
+    if level not in valid_levels:
+        raise ValueError(f"無効なログレベルです: {level}. 有効な値: {', '.join(valid_levels)}")
+
+    settings = load_settings()
+    settings["log_level"] = level
     save_settings(settings)
 
 

@@ -6,6 +6,7 @@
 import os
 import logging
 from pathlib import Path
+from clipper_agent.settings import get_settings
 
 def setup_logging():
     """
@@ -22,13 +23,31 @@ def setup_logging():
     # ログファイルパス
     log_file = app_data_dir / 'ClipperAgent.log'
     
+    # 設定からログレベルを取得
+    try:
+        settings = get_settings()
+        log_level_str = settings.get('log_level', 'INFO').upper()
+    except Exception:
+        log_level_str = 'INFO'
+
+    level_map = {
+        'DEBUG': logging.DEBUG,
+        'INFO': logging.INFO,
+        'ERROR': logging.ERROR
+    }
+    log_level = level_map.get(log_level_str, logging.INFO)
+
     # ロガーの設定
     logger = logging.getLogger('ClipperAgent')
-    logger.setLevel(logging.INFO)
+    logger.setLevel(log_level)
+
+    # 既存のハンドラーをクリア（重複防止）
+    if logger.handlers:
+        logger.handlers.clear()
     
     # ファイルハンドラー
     file_handler = logging.FileHandler(log_file, encoding='utf-8')
-    file_handler.setLevel(logging.INFO)
+    file_handler.setLevel(log_level)
     
     # フォーマット
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
