@@ -9,6 +9,7 @@ from .settings_manager import (
     delete_prompt,
     get_prompt_by_name,
     set_default_prompt,
+    set_log_level,
 )
 
 class ToolTip:
@@ -64,6 +65,24 @@ class ClipperAgentConfigApp:
         # --- メインフレーム --- 
         main_frame = ttk.Frame(root, padding="10")
         main_frame.pack(expand=True, fill=tk.BOTH)
+
+        # --- 全体設定 ---
+        general_settings_frame = ttk.LabelFrame(main_frame, text="一般設定", padding="10")
+        general_settings_frame.pack(fill=tk.X, pady=(0, 5))
+
+        # ログレベル設定
+        ttk.Label(general_settings_frame, text="ログレベル:").pack(side=tk.LEFT, padx=5)
+        self.log_level_var = tk.StringVar(value=self.settings_data.get("log_level", "INFO"))
+        self.log_level_combo = ttk.Combobox(
+            general_settings_frame,
+            textvariable=self.log_level_var,
+            values=["DEBUG", "INFO", "ERROR"],
+            state="readonly",
+            width=10
+        )
+        self.log_level_combo.pack(side=tk.LEFT, padx=5)
+        self.log_level_combo.bind("<<ComboboxSelected>>", self.on_log_level_change)
+        create_tooltip(self.log_level_combo, "アプリケーションのログ出力レベルを設定します。")
 
         # --- プロンプト編集フォーム --- 
         form_frame = ttk.LabelFrame(main_frame, text="プロンプト編集", padding="10")
@@ -304,6 +323,16 @@ class ClipperAgentConfigApp:
                 self.refresh_prompt_list()
             except ValueError as e:
                 messagebox.showerror("エラー", str(e))
+
+    def on_log_level_change(self, event):
+        """ログレベルが変更された時の処理"""
+        new_level = self.log_level_var.get()
+        try:
+            set_log_level(new_level)
+            self.settings_data = load_settings() # 設定を再読み込み
+            # messagebox.showinfo("成功", f"ログレベルを {new_level} に変更しました。") # 頻繁に変更するものではないかもしれないが、確認はあってもいい。今回は静かに保存。
+        except ValueError as e:
+             messagebox.showerror("エラー", str(e))
 
 
 if __name__ == '__main__':
