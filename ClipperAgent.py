@@ -10,7 +10,7 @@ import logging
 import time
 
 from clipper_agent.clipboard import get_clipboard_text, set_clipboard_text
-from clipper_agent.settings import get_prompt, get_settings
+from clipper_agent.settings import get_prompt, load_settings
 from clipper_agent.prompt import build_prompt
 from clipper_agent.gemini_api import generate_text
 from clipper_agent.notification import show_notification
@@ -29,7 +29,7 @@ def main():
     try:
         # プロンプト名が指定されていない場合はデフォルトプロンプトを使用
         if not prompt_name:
-            settings = get_settings()
+            settings = load_settings()
             default_prompt_name = settings.get('default_prompt_name')
             if not default_prompt_name:
                 error_msg = "プロンプト名が指定されておらず、デフォルトプロンプトも設定されていません。"
