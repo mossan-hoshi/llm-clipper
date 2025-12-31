@@ -9,6 +9,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import google.generativeai as genai
 
+from clipper_agent.settings import get_project_root, get_app_data_dir
+
 def load_api_settings():
     """
     .envファイルからAPI設定を読み込みます。
@@ -20,11 +22,11 @@ def load_api_settings():
         ValueError: APIキーが設定されていない場合
     """
     # .envファイルの検索と読み込み
-    # まず実行ファイルと同じディレクトリを確認
-    env_path = Path(__file__).parent.parent / '.env'
+    # まず実行ファイル(またはプロジェクトルート)と同じディレクトリを確認
+    env_path = get_project_root() / '.env'
     if not env_path.exists():
         # 次にユーザーのアプリケーションデータディレクトリを確認
-        app_data_dir = Path(os.getenv('APPDATA')) / 'ClipperAgent'
+        app_data_dir = get_app_data_dir()
         env_path = app_data_dir / '.env'
         if not env_path.exists():
             raise FileNotFoundError(f".envファイルが見つかりません。APIキーを設定してください。")
