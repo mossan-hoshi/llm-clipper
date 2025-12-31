@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from .settings_manager import (
+from clipper_agent.settings import (
     load_available_models,
     load_settings,
     save_settings,
@@ -337,7 +337,7 @@ class ClipperAgentConfigApp:
 
 if __name__ == '__main__':
     # このファイル単体で実行する場合（テスト用）
-    # settings_manager.py で初期設定が書き込まれることを確認してから実行すると良い
+    # clipper_agent.settings で初期設定が書き込まれることを確認してから実行すると良い
     root = tk.Tk()
     app = ClipperAgentConfigApp(root)
     root.mainloop()
