@@ -5,6 +5,7 @@ settings.jsonからプロンプト情報を読み込む機能を提供します�
 
 import json
 import os
+import sys
 import logging
 from pathlib import Path
 from typing import List, Optional
@@ -22,6 +23,16 @@ def get_app_data_dir() -> Path:
     app_data_dir = Path(APP_DATA_DIR)
     app_data_dir.mkdir(parents=True, exist_ok=True)
     return app_data_dir
+
+def get_project_root() -> Path:
+    """プロジェクトルート（または実行ファイルのディレクトリ）を取得する"""
+    if getattr(sys, 'frozen', False):
+        # PyInstallerでパッケージ化されている場合
+        return Path(sys.executable).parent
+    else:
+        # ソースコード実行の場合、プロジェクトルートを返す
+        # settings.pyは clipper_agent/settings.py にあるので、parent.parent
+        return Path(__file__).resolve().parent.parent
 
 def get_settings_file_path() -> Path:
     """設定ファイルのパスを取得する"""
@@ -175,9 +186,8 @@ def set_log_level(level: str) -> None:
 def load_available_models() -> List[str]:
     """.envからAVAILABLE_MODELSを読み込み、リストで返す"""
     # プロジェクトルート/.env -> APPDATA/.env の順で検索
-    # 注意: __file__はパッケージ内にあるため、親の親を見る
     env_paths = [
-        Path(__file__).resolve().parent.parent / ".env",
+        get_project_root() / ".env",
         get_app_data_dir() / ".env",
     ]
 
