@@ -10,7 +10,7 @@ import logging
 import time
 
 from clipper_agent.clipboard import get_clipboard_text, set_clipboard_text
-from clipper_agent.settings import get_prompt, load_settings
+from clipper_agent.settings import get_prompt_by_name, load_settings
 from clipper_agent.prompt import build_prompt
 from clipper_agent.gemini_api import generate_text
 from clipper_agent.notification import show_notification
@@ -46,8 +46,11 @@ def main():
         print(f"クリップボードからテキストを取得しました ({len(clipboard_text)} 文字)")
 
         # 指定されたプロンプト名のプロンプト情報を取得
-        prompt_info = get_prompt(prompt_name)
-        prompt_template = prompt_info.get('content') or prompt_info.get('text', '')
+        prompt_info = get_prompt_by_name(prompt_name)
+        if prompt_info is None:
+            raise ValueError(f"指定されたプロンプト '{prompt_name}' が見つかりません。")
+
+        prompt_template = prompt_info.get('content', '')
         model_id = prompt_info.get('model', 'gemini-pro')
         print(f"プロンプト '{prompt_name}' を読み込みました（モデル: {model_id}）")
 

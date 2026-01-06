@@ -260,7 +260,7 @@ class ClipperAgentConfigApp:
         
         # プロンプトデータをフォームに設定
         self.prompt_name_entry.insert(0, prompt.get("name", ""))
-        self.prompt_text_entry.insert("1.0", prompt.get("text", ""))
+        self.prompt_text_entry.insert("1.0", prompt.get("content", ""))
         
         # モデルの選択
         model = prompt.get("model", "")
