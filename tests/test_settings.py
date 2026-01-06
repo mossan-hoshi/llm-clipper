@@ -112,16 +112,6 @@ def test_get_prompt_by_name(mock_settings_file):
     prompt = settings.get_prompt_by_name("nonexistent")
     assert prompt is None
 
-def test_get_prompt_legacy(mock_settings_file):
-    """Test legacy get_prompt raises ValueError"""
-    settings.add_prompt("p1", "c1", "m1")
-
-    prompt = settings.get_prompt("p1")
-    assert prompt["name"] == "p1"
-
-    with pytest.raises(ValueError):
-        settings.get_prompt("nonexistent")
-
 def test_set_log_level(mock_settings_file):
     """Test setting log level"""
     settings.set_log_level("DEBUG")

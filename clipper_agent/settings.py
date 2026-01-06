@@ -38,16 +38,6 @@ def get_settings_file_path() -> Path:
     """設定ファイルのパスを取得する"""
     return get_app_data_dir() / SETTINGS_FILE_NAME
 
-def _normalize_prompt(prompt: dict) -> dict:
-    """プロンプト辞書のキーを現在の仕様に揃える"""
-    if "content" not in prompt and "text" in prompt:
-        prompt["content"] = prompt.get("text", "")
-    return {
-        "name": prompt.get("name", ""),
-        "content": prompt.get("content", ""),
-        "model": prompt.get("model", ""),
-    }
-
 def load_settings() -> dict:
     """
     設定ファイルを読み込みます。
@@ -59,10 +49,12 @@ def load_settings() -> dict:
         try:
             with open(settings_file, "r", encoding="utf-8") as f:
                 loaded = json.load(f)
-                prompts = loaded.get("prompts", []) if isinstance(loaded, dict) else []
-                normalized_prompts = [_normalize_prompt(p) for p in prompts if isinstance(p, dict)]
+                if not isinstance(loaded, dict):
+                    return default
+
+                # 必要なキーが存在するか確認し、なければデフォルト値を使用
                 return {
-                    "prompts": normalized_prompts,
+                    "prompts": loaded.get("prompts", []),
                     "default_prompt_name": loaded.get("default_prompt_name"),
                     "log_level": loaded.get("log_level", "INFO"),
                 }
@@ -75,9 +67,6 @@ def save_settings(settings_data: dict):
     settings_file = get_settings_file_path()
     with open(settings_file, "w", encoding="utf-8") as f:
         json.dump(settings_data, f, indent=4, ensure_ascii=False)
-
-# 互換性のためのエイリアス
-get_settings = load_settings
 
 def add_prompt(prompt_name: str, prompt_text: str, model_id: str) -> bool:
     """新しいプロンプトを追加します。"""
@@ -148,17 +137,6 @@ def get_prompt_by_name(prompt_name: str) -> dict:
     # 古いget_prompt関数を別途定義する。
     return None
 
-def get_prompt(prompt_name: str) -> dict:
-    """
-    指定されたプロンプト名に対応するプロンプト情報を取得します（旧API互換）。
-    
-    Raises:
-        ValueError: 指定されたプロンプト名が存在しない場合
-    """
-    prompt = get_prompt_by_name(prompt_name)
-    if prompt is None:
-        raise ValueError(f"指定されたプロンプト '{prompt_name}' が見つかりません。")
-    return prompt
 
 def set_default_prompt(prompt_name: Optional[str]) -> None:
     """デフォルトプロンプト名を設定または解除する"""

@@ -6,7 +6,7 @@
 import os
 import logging
 from pathlib import Path
-from clipper_agent.settings import get_settings
+from clipper_agent.settings import load_settings
 
 def setup_logging():
     """
@@ -25,7 +25,7 @@ def setup_logging():
     
     # 設定からログレベルを取得
     try:
-        settings = get_settings()
+        settings = load_settings()
         log_level_str = settings.get('log_level', 'INFO').upper()
     except Exception:
         log_level_str = 'INFO'
